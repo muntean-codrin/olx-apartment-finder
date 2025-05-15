@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from bs4 import BeautifulSoup
 import time
+import re
 
 load_dotenv()
 
@@ -33,6 +34,11 @@ def hm_from_timedelta(td):
     h = total // 3600
     m = (total % 3600) // 60
     return f"{h:02d}:{m:02d}"
+    
+def extract_price(price_str):
+    # Extract the numeric part of the price string
+    match = re.search(r'\d+', price_str.replace('.', '').replace(',', ''))
+    return int(match.group()) if match else 0
 
 def parse_date(scraped_date: str):
     scraped_date = scraped_date.lower().strip()
@@ -127,8 +133,11 @@ def searchRents(city, type, url):
             db_price = result[0]['price']
             db_date = result[0]['date']
             db_time = result[0]['time']
+            
+            db_price_value = extract_price(db_price)
+            price_value = extract_price(price)
 
-            if db_price != price:
+            if abs(db_price_value - price_value) >= 5:
                 print(f"💸 Price changed: {title} | {db_price} → {price}")
                 cursor.execute(update_query, (type, title, date_added, time, location, price, reactualizat, link))
 
